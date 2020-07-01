@@ -1,0 +1,51 @@
+09 June 2020
+
+All samples: 
+197  tandem_RNAseq
+     
+Samples per category:
+33 tandem_RNAseq_T2D_only
+58 tandem_RNAseq_TB-T2D
+20 tandem_RNAseq_TB-preDM
+56 tandem_RNAseq_TB_only
+24 tandem_RNAseq_healthy
+6 tandem_RNAseq_preDM
+
+Samples per time of diagnoses: 
+33 Diagnosis_T2D_only
+15 Diagnosis_TB-T2D
+20 Diagnosis_TB-preDM
+11 Diagnosis_TB_only
+ 24 Diagnosis_healthy
+ *6 Diagnosis_preDM
+
+12 Month_6_TB-T2D
+15 Month_6_TB_only
+
+16 Month_2_TB-T2D
+16 Month_2_TB_only
+
+15 Week_2_TB-T2D
+14 Week_2_TB_only
+
+1.	Prepare the dataset and look at data 
+a.	Rename the files to make analysis easier.  
+
+A = TB-T2D coinfected individuals (35 in total)
+B = TB-only individuals (11 in total)
+C = T2D-only (33 in total)
+D = healthy individuals (24 in total)
+
+E = Diagnosis 
+F = Week2 
+G = Month2
+H = Month6
+
+Sample names = Samples.txt
+
+Stored data: 
+lustre -> /mnt/lustre/users/yswart/
+
+**NOTE: Samples were not all sequenced on the same sequencer, run or lanes. This could bring in bias in differential gene expression. Need to correct for noise in statistical models. 
+
+One individual however is sequenced on the same sequencer and run, but on different flow cell lanes. Just need to account for this in statistical analysis. 
