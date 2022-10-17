@@ -3,7 +3,7 @@ RNA-sequencing analysis on TANDEM samples for eQTL mapping in a five-way admixed
 
 ## RNA-Sequencing analysis 
 
-1. ### Run 01_HTS_stats.sh to get statistics of raw reads and to pre-processing on raw reads 
+### 1. Run 01_HTS_stats.sh to get statistics of raw reads and to pre-processing on raw reads
 
 **Pre-processing of raw reads include:**
 1.	hts_Stats: get stats on input raw reads
