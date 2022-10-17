@@ -1,0 +1,286 @@
+---
+title: "DEG_tandemSA"
+author: "Yolandi Swart"
+date: "18 August 2020" 
+output: 
+ html_document:
+      keep_md: TRUE
+---
+
+# Differential Gene Expression Analysis in R for SA samples of TANDEM Consortium 
+
+## Differential Expression Analysis with Limma-Voom
+
+### Basic Steps of Differential Gene Expression
+1. Read count data and annotation into R and preprocessing.
+2. Calculate normalization factors (sample-specific adjustments)
+3. Filter genes (uninteresting genes, e.g. unexpressed)
+4. Account for expression-dependent variability by transformation, weighting, or modeling (voom)
+5. Fitting a linear model
+6. Perform statistical comparisons of interest (using contrasts)
+7. Adjust for multiple testing, Benjamini-Hochberg (BH) or q-value
+8. Check results for confidence
+9. Attach annotation if available and write tables
+
+Load the libraries required
+```{r load_packages, echo=FALSE, warning=FALSE, message=FALSE}
+library(edgeR)
+library(gplots)
+library(dplyr)
+library(ggplot2)
+library(reshape)
+library(ggrepel)
+library(RColorBrewer)
+library(pheatmap)
+```
+
+## 1. Read in the counts table and create our DGEList (EdgeR)
+
+```{r read_count_data}
+counts <- as.matrix(read.delim("/Users/yolandiswart/Documents/RNA_sequencing_analysis/eQTL/Final_raw_counts.txt", row.names = 1))
+head(counts)
+dim(counts) #number of genes 
+```
+
+Create Differential Gene Expression List Object (DGEList) object
+
+**1a\.** Design my matrix 
+
+1. First need to make a design matrix in order to indicate how samples are grouped
+2. Second we need to make a DGEList 
+
+A = TB-T2D comorcidity (n=15)
+B = TB-only (n=11)
+C = T2D-only (n=32)
+D = Healthy controls (n=24)
+E = TB-preT2D (n=20)
+F = pre-T2D (n=6)
+
+```{r interaction}
+group <- factor(c("A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","A","B" ,"B","B" ,"B","B" ,"B","B" ,"B","B" ,"B","B" ,"C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","C","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","D","E","E","E","E","E","E","E","E","E","E","E","E","E","E","E","E","E","E","E","E","F","F","F","F","F","F")) # Needs to be in the same order as gene expression
+group
+
+gender <- as.numeric(factor(c(2,2,1,1,1,2,1,1,2,2,1,1,2,2,2,1,1,1,1,1,1,1,2,2,2,2,2,1,1,1,2,1,2,2,1,2,1,2,2,2,2,2,2,2,2,2,1,1,2,1,2,1,2,2,1,2,1,1,1,2,1,2,2,2,2,2,1,1,2,1,1,2,1,2,1,2,2,2,1,1,1,1,1,2,1,1,2,2,1,1,1,2,1,2,2,2,2,2,1)))
+gender
+class(gender)
+
+
+age <- (factor(c(56,44.0109519958496,57.360710144043,40,55,45.3935661315918,49.262149810791,48.5119781494141,45.6125946044922,53,34.4585914611816,39.9069137573242,42.7898712158203,27.4113616943359,46.0013694763184,54.7980842590332,56.7200546264648,53.590690612793,43.2826843261719,38.012321472168,43.6495552062988,53.2895278930664,46.1574249267578,25.6481857299805,31,33.0951385498047,33.0732383728027,39.058177947998,45.8507881164551,45.0513343811035,25.0650234222412,46.5489387512207,54.5325126647949,47.7590675354004,49.590690612793,31.9698829650879,56.4736480712891,48.3860359191895,42,50.1300468444824,35.0937728881836,31,34,55.4113616943359,48.5448341369629,52.8158798217773,41.5989036560059,45,52.4353179931641,44.5858993530273,49.3689270019531,61.5715255737305,58.1108818054199,42.447639465332,57.5441474914551,60,43.8576316833496,45.2210807800293,41.0924034118652,40.5119781494141,28.9253940582275,29.5742645263672,57.8288841247559,36.9363441467285,53.6180686950684,49.1800155639648,54.8610534667969,64.4763870239258,53.5222434997559,41.6235466003418,49.8809051513672,34.3080101013184,46.4503746032715,54.8336753845215,63.7015724182129,36,38,70,39,43,51,40,49,66,52,45,30,44,34,44,36,42,41,45,49,31,42,40,42)))
+age
+class(age) 
+
+d0 <- DGEList(counts, group = group) # Create new object
+d0$samples #lib.size indicates the total sum of gene counts per sample
+```
+
+**1b\.** Read in Annotation
+
+Annotation for the genes or genomic features
+
+```{r read_annotation}
+anno <- read.delim("/Users/yolandiswart/Documents/RNA_sequencing_analysis/ensembl_hg_100.tsv",as.is=T)
+dim(anno)
+head(anno)
+tail(anno)
+any(duplicated(anno$Gene.stable.ID)) # we only want unique genes
+```
+
+## 2. Filtering out lowly expessed genes
+
+A gene must be expressed at some minimal level before it is likely to be translated into a potein or to be biologically important. 
+We try to remove genes that are either a) unexpressed, or b) unchanging (low-variability). Additionally, these genes with minimal counts would be difficult to distinguish from sequencing noise. 
+
+Common filters include:
+1. to remove genes with a max value (X) of less then Y.
+2. to remove genes that are less than X normalized read counts (cpm(counts per million reads)) across a certain number of samples. Ex: rowSums(cpms <=1) < 3 , require at least 1 cpm in at least 3 samples to keep. (Choice of this parameter you can change depended on your experiment). A cpm of 1 corresponds to a count of 6-7 in the smallest samples.
+3. A less used filter is for genes with minimum variance across all samples, so if a gene isn't changing (constant expression) its inherently not interesting therefor no need to test.
+
+Here we will filter low-expressed genes, remove any row (gene) whose max value (for the row) is less than cutoff (3). "Low-expressed" is subjective and depends on the dataset.
+
+```{r filter}
+cpms <- cpm(d0) ##Check out the counts per millions
+head(cpms)
+table((rowSums(head(cpms) > 1) >= 3))
+
+cutoff <- 3 ## I want my reads to be at least 3 counts per million 
+drop <- which(apply(cpm(d0), 1, max) < cutoff)
+d <- d0[-drop,]
+dim(d) # number of genes left
+head(d)
+```
+
+## 3. Calculating Normalization factors
+
+In edgeR/limma, you calculate normalization factors to scale the raw library sizes (number of reads) using the function calcNormFactors. 
+The calcNormFactors function normalizes the library sizes by finding a set of scaling factors for the library sizes that minimizes the log-fold changes between the samples for most genes.
+
+The default method for computing these scale factors uses a trimmed mean of M-values (TMM) between each pair of samples. Assumes most genes are not DE. Proposed by Robinson and Oshlack (2010).
+
+We call the product of the original library size and the scaling factor the effective library size. The effective library size replaces the original library size in all downsteam analyses. 
+
+TMM is recommended for most RNA-Seq data where the majority (more than half) of the genes are believed not differentially expressed between any pair of the samples.
+
+```{r preprocess}
+d1 <- calcNormFactors(d) 
+d1$samples
+```
+**Note:** calcNormFactors doesn't _normalize_ the data, it just calculates normalization factors for use downstream in the modeling process.
+
+The set of all normalization factors for a DGEList multiply to unity, ensuring that the geometric mean of the effective library sizes is the same as the geometric mean of the original library sizes. A normalization factor below one indicates that a small number of high count genes are monopolizing the sequencing, causing the counts for other genes to be lower than would be usual given the library size. As a result, the library size will be scaled down, analogous to scaling the counts upwards in that library. Conversely, a factor above one scales up the library size, analogous to downscaling the counts.
+
+
+##Visualising data 
+
+Visualizaing your data with a Multidimensional scaling (MDS) plot. How related samples are towards each other. 
+
+```{r fig.width=10}
+plotMDS(d, col = as.numeric(d0$samples$group, main="MDS Plot" ))
+legend("topleft", as.character(unique(d0$samples$group)), col = 1:4, pch = 25)
+```
+
+
+```{r mds, fig.width=8}
+plotMDS(d, col = as.numeric(d0$samples$group, main="MDS plot"))
+png(file="/Users/yolandiswart/Documents/RNA_sequencing_analysis/DEG_Results/MDS_Plot.png")
+dev.off()
+legend("topleft", legend = c("TB-T2D", "TB", "T2D", "Healthy", "TB-preT2D", "pre-T2D"), col = 1:6, pch = 15)
+```
+
+The MDS plot tells you **A LOT** about what to expect from your experiment.
+
+- Showcases to us the relationship between the samples - plotting smaples relative to each other 
+- If they cluster together, they showcase the same expression patterns 
+- You want all the replicates to cluster 
+- You want your groups to separate from each other 
+- Looks like we are going to have little expressed genes 
+- Looks like a biological outliers 
+- Compare to multiQC report to understand if the outliers were due to a tecnical replicate or due to a biological replication
+
+**3a\.** Extracting "normalized" expression table
+
+### RPKM vs. FPKM vs. CPM and Model Based
+* RPKM - Reads per kilobase per million mapped reads
+* FPKM - Fragments per kilobase per million mapped reads
+* logCPM – log Counts per million [ good for producing MDS plots, estimate of normalized values in model based ]
+* Model based - original read counts are not themselves transformed, but rather correction factors are used in the DE model itself.
+
+We use the `cpm` function with log=TRUE to obtain log-transformed normalized expression data.  On the log scale, the data has less mean-dependent variability and is more suitable for plotting.
+
+```{r}
+logcpm <- cpm(d, prior.count=2, log=TRUE)
+write.table(logcpm,"/Users/yolandiswart/Documents/RNA_sequencing_analysis/eQTL/normalized_counts_tandemSA.txt",sep="\t",quote=F)
+```
+
+## 4. Voom transformation and calculation of variance weights
+
+Specify the model to be fitted.  We do this before using voom since voom uses variances of the model residuals (observed - fitted)
+The function model.matrix() is used to make a design matrix from a factor 
+
+```{r model}
+mm <- model.matrix(~0 + group) #the zero removes the intercept 
+dim(mm)
+mm
+```
+The above specifies a model where each coefficient corresponds to a group mean.
+
+**4a\.** **Voom**
+
+```{r voom, fig.width=8}
+y <- voom(d, mm, plot = T) #Plot needs to approximate data as far as possible - after filtering was done
+```
+
+What is voom doing?
+
+1. Counts are transformed to log2 counts per million reads (CPM), where "per million reads" is defined based on the normalization factors we calculated earlier.
+2. A linear model is fitted to the log2 CPM for each gene, and the residuals are calculated.
+3. A smoothed curve is fitted to the sqrt(residual standard deviation) by average expression.
+(see red line in plot above)
+4. The smoothed curve is used to obtain weights for each gene and sample that are passed into limma along with the log2 CPMs.
+
+More details at "[voom: precision weights unlock linear model analysis tools for RNA-seq read counts](https://genomebiology.biomedcentral.com/articles/10.1186/gb-2014-15-2-r29)"
+
+## 5. Fitting linear models in limma
+
+lmFit fits a linear model using weighted least squares for each gene:
+```{r lmfit}
+fit <- lmFit(y, mm)
+head(coef(fit)) #Coeficients showcases the mean expression of each group for each genomic region 
+```
+
+Comparisons between groups (log fold-changes) are obtained as _contrasts_ of these fitted linear models:
+
+## 6. Specify which groups to compare using contrasts:
+
+Comparison between groups (Between group A and D, therefore between TB-T2D comorbidity and healthy controls)
+
+```{r contrasts}
+contr <- makeContrasts(groupA - groupD, levels = colnames(coef(fit))) #Comparing groups with each other 
+contr
+```
+
+**6a\.** Estimate contrast for each gene
+
+```{r contast.fit}
+tmp <- contrasts.fit(fit, contr)
+```
+
+The variance characteristics of low expressed genes are different from high expressed genes, if treated the same, the effect is to over represent low expressed genes in the DE list.
+
+Empirical Bayes smoothing of standard errors (shHScoreks standard errors that are much larger or smaller than those from other genes towards the average standard error) (see "[Linear Models and Empirical Bayes Methods for Assessing Differential Expression in Microarray Experiments](https://www.degruyter.com/doi/10.2202/1544-6115.1027)"
+
+**6b\.** Apply EBayes
+
+```{r ebayes}
+tmp <- eBayes(tmp)
+```
+
+## 7. Multiple Testing Adjustment
+
+The TopTable. Ajust by Benjamini & Hochberg (BH), or its 'alias' fdr. "[Controlling the false discovery rate: a practical and powerful approach to multiple testing](http://www.jstor.org/stable/2346101).
+
+here `n=Inf` says to produce the topTable for **all** genes.
+
+```{r toptable}
+top.table <- topTable(tmp, adjust.method = "BH", sort.by = "P", n = Inf)
+```
+
+### Multiple Testing Correction
+
+\Simply a must! Best choices are:
+  * [FDR](http://www.jstor.org/stable/2346101) (false discovery rate), such as Benjamini-Hochberg (1995).
+  * [Qvalue](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/1467-9868.00346) - Storey (2002)
+
+The FDR (or qvalue) is a statement about the list and is no longer about the gene (pvalue). So a FDR of 0.05, says you expect 5% false positives among the list of genes with an FDR of 0.05 or less. Therefore controlling the number of false postives in our list. 
+
+The statement “Statistically significantly different” means FDR of 0.05 or less.
+
+**7a\.** How many DE genes are there (false discovery rate corrected)?
+```{r count_de}
+length(which(top.table$adj.P.Val < 0.05))
+```
+## 8. Check your results for confidence.
+
+You've conducted an experiment, you've seen a phenotype. Now check which genes are most deferentially expressed (show the top 50)? Look up these top genes, their description and ensure they relate to your experiment/phenotype. 
+
+```{r de_genes_top30}
+head(top.table, 50)
+```
+Columns are
+* logFC: log2 fold change of TB-T2D/Healthy controls
+* AveExpr: Average expression across all samples, in log2 CPM
+* t: logFC divided by its standard error
+* P.Value: Raw p-value (based on t) from test that logFC differs from 0
+* adj.P.Val: Benjamini-Hochberg false discovery rate adjusted p-value
+* B: log-odds that gene is DE (arguably less useful than the other columns)
+
+## 9. Write top.table to a file, adding in cpms and annotation
+```{r}
+top.table$Gene <- rownames(top.table)
+top.table <- top.table[,c("Gene", names(top.table)[1:6])]
+
+top.table <- data.frame(top.table,anno[match(top.table$Gene,anno$Gene.stable.ID.version),],logcpm[match(top.table$Gene,rownames(logcpm)),])
+
+head(top.table)
+write.table(top.table, file = "TB-T2D_v_Healthy.txt", row.names = F, sep = "\t", quote = F)
+```
+
