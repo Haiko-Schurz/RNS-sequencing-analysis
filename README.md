@@ -3,9 +3,9 @@ RNA-sequencing analysis on TANDEM samples for eQTL mapping in a five-way admixed
 
 ## RNA-Sequencing analysis 
 
-### 1.Run 01_HTS_stats.sh to get statistics of raw reads and to pre-processing on raw reads
+**1.Run 01_HTS_stats.sh to get statistics of raw reads and to pre-processing on raw reads**
 
-**Pre-processing of raw reads include:**
+Pre-processing of raw reads include:
 1.	hts_Stats: get stats on input raw reads
 2.	hts_SeqScreener: screen out (remove) phiX
 3.	hts_SeqScreener: screen for (count) rRNA – just count them and not remove them 
@@ -22,28 +22,27 @@ RNA-sequencing analysis on TANDEM samples for eQTL mapping in a five-way admixed
 Appends statistics of each command into a .json file which are then visualised via MultiQC for each sample. 
 Pre-processing statistics visualised with multiQC version 1.10.0 – new version with the HTStream as one of the new modules included - link to my report as an example: file:///Users/yolandiswart/Documents/Multiqc_test/01-HTS-mulitqc-report/multiqc_report.html
 
-### 2.Index genome with annotation file using 02_Index.sh 
+**2.Index genome with annotation file using 02_Index.sh** 
 
 Indexed with ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.primary_assembly.annotation.gtf.gz
 gunzip gencode.v34.primary_assembly.annotation.gtf.gz
 GTF="../gencode.v34.primary_assembly.annotation.gtf"
 
-### 3.Align to reference genome (GRCh38) using STAR.v.2.5.3
+**3.Align to reference genome (GRCh38) using STAR.v.2.5.3**
 
 The –quantMode option in STAR enables the GeneCount tables we are getting, therefore we don’t have to use HTSe Count or any other software to quantify gene counts 
 
-### 4.Get statistics of alignments using 04_STAR_stats.sh 
+**4.Get statistics of alignments using 04_STAR_stats.sh**
 
 Alignment output: 
 
 ![image](https://user-images.githubusercontent.com/49681556/196138925-97c9dfcd-1f06-4c94-9025-c3e6cd9aca81.png)
 
-**- First column indicates mapped either to reverse or double strand = total read count ; this is how you find out if your samples mapped to either the everse or forward stand if it is single end paired end reads**
-**- Second column indicates counts if it mapped to the forward strand**
-**- Third column indicates reads mapped to the reverse strand (mine mapped to the reverse strand)**
+- First column indicates mapped either to reverse or double strand = total read count ; this is how you find out if your samples mapped to either the everse or forward stand if it is single end paired end reads
+- Second column indicates counts if it mapped to the forward strand
+- Third column indicates reads mapped to the reverse strand (mine mapped to the reverse strand)
 
-
-•	Look at the following for mapping accuracy: 
+Look at the following for mapping accuracy: 
       Ambiguous = Mapped over two genes – Alignment is confident 
       NoFeature = Didn’t map to a gene 
       Multimapping = Mapped over two regions or multiple regions – Alignment is not confident 
@@ -53,11 +52,24 @@ Alignment output:
 •	Although we refer to counting “genes” – these can also refer to as transcripts, exons, or any other type of feature. 
 
 
-### 5.Get raw count table from STAR alignment output using 05_Count_tables.sh 
+**5.Get raw count table from STAR alignment output using 05_Count_tables.sh**
 
-**Example of raw gene count table that is going to be imported into R:**
+Example of raw gene count table that is going to be imported into R:
 
 ![image](https://user-images.githubusercontent.com/49681556/196139688-2e68520f-db89-4c6e-891c-329df7b80838.png)
 
+**6.Filter and normalise raw gene count tables with R scripts (DEG_Yolandi.Rmd)**
 
-## 6.Filter and normalise raw gene count tables with R scripts (
+
+## cis-eQTL mapping analysis 
+
+Inputfiles required for analysis: 
+1. Expression file - normalised gene counts (split into chunks of 50 genes per file using split_chunks.sh). Example file: expression.00
+2. Genotyp information - vcf file format 
+3. Covariates - including PEER confounders (Run_PEER.R) and global ancestry proportions calculated with RFMix. 
+4. Local ancestry information - coded as 0, 1 or 2 for every genomic region. Example file: ancestry.chr22.bed
+
+
+Example of output file: 
+
+Extract top eGenes and unique eGenes ( 
