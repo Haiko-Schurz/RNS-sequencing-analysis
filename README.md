@@ -19,12 +19,13 @@ Pre-processing of raw reads include:
 
 *We did not remove any PCR duplicates, since we have single-end reads and not paired-end reads.* 
 
-Appends statistics of each command into a .json file which are then visualised via MultiQC for each sample. 
-Pre-processing statistics visualised with multiQC version 1.10.0 – new version with the HTStream as one of the new modules included - link to my report as an example: file:///Users/yolandiswart/Documents/Multiqc_test/01-HTS-mulitqc-report/multiqc_report.html
+- Appends statistics of each command into a .json file which are then visualised via MultiQC for each sample. 
+- Pre-processing statistics visualised with multiQC version 1.10.0 – new version with the HTStream as one of the new modules included - link to my report as an example: file:///Users/yolandiswart/Documents/Multiqc_test/01-HTS-mulitqc-report/multiqc_report.html
 
 **2.Index genome with annotation file using 02_Index.sh** 
 
-Indexed with ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.primary_assembly.annotation.gtf.gz
+- Indexed with ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_34/gencode.v34.primary_assembly.annotation.gtf.gz
+
 gunzip gencode.v34.primary_assembly.annotation.gtf.gz
 GTF="../gencode.v34.primary_assembly.annotation.gtf"
 
@@ -48,9 +49,8 @@ Look at the following for mapping accuracy:
       Multimapping = Mapped over two regions or multiple regions – Alignment is not confident 
 
 *It is all about the amount of fragments you captured during sequencing and aligning to the Reference Genome. Therefore the more you count, the better. We use gene count as proxy for gene expression.*
-•	Generated gene count tables (Quantification step). We do not use HTSeq count due to mapping not strand-specific, which STAR does
-•	Although we refer to counting “genes” – these can also refer to as transcripts, exons, or any other type of feature. 
 
+- Generated gene count tables (Quantification step). We do not use HTSeq count due to mapping not strand-specific, which STAR does although we refer to counting “genes” – these can also refer to as transcripts, exons, or any other type of feature. 
 
 **5.Get raw count table from STAR alignment output using 05_Count_tables.sh**
 
@@ -61,15 +61,20 @@ Example of raw gene count table that is going to be imported into R:
 **6.Filter and normalise raw gene count tables with R scripts (DEG_Yolandi.Rmd)**
 
 
-## cis-eQTL mapping analysis 
+## cis-eQTL mapping analysis
 
-Inputfiles required for analysis: 
+Run eQTL analysis (eqtl_localaa_globalaa_afr.R and run_eqtl_afr.sh). 
+
+**Inputfiles required for analysis:**
 1. Expression file - normalised gene counts (split into chunks of 50 genes per file using split_chunks.sh). Example file: expression.00
 2. Genotyp information - vcf file format 
-3. Covariates - including PEER confounders (Run_PEER.R) and global ancestry proportions calculated with RFMix. 
+3. Covariates - including PEER confounders (run_PEER.R) and global ancestry proportions calculated with RFMix. 
 4. Local ancestry information - coded as 0, 1 or 2 for every genomic region (interpolate-local-anc.py). Example file: ancestry.chr22.bed
 
+**Output file:** LocalAA-GlobalAA-allpairs_afr_filt.tsv.gz
 
-Example of output file: LocalAA-GlobalAA-allpairs_afr_filt.tsv.gz
+Extract top eGenes and unique eGenes (extract_egenes_afr.py and get_uniq_egenes.R). 
+Example file of output: gtex.admix.global.egenes.tied_afr.txt.gz +  gtex.admix.lava.egenes.tied_afr.txt.gz
 
-Extract top eGenes and unique eGenes ( 
+
+*Example files and scripts are for only Bantu-speaking African ancestry. Where ancestry of interest = 1 (additive model). Therefore, scripts were run separately for all five contributing ancestries.*
