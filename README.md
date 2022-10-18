@@ -67,9 +67,9 @@ Inputfiles required for analysis:
 1. Expression file - normalised gene counts (split into chunks of 50 genes per file using split_chunks.sh). Example file: expression.00
 2. Genotyp information - vcf file format 
 3. Covariates - including PEER confounders (Run_PEER.R) and global ancestry proportions calculated with RFMix. 
-4. Local ancestry information - coded as 0, 1 or 2 for every genomic region. Example file: ancestry.chr22.bed
+4. Local ancestry information - coded as 0, 1 or 2 for every genomic region (interpolate-local-anc.py). Example file: ancestry.chr22.bed
 
 
-Example of output file: 
+Example of output file: LocalAA-GlobalAA-allpairs_afr_filt.tsv.gz
 
 Extract top eGenes and unique eGenes ( 
