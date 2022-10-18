@@ -59,6 +59,8 @@ Example of raw gene count table that is going to be imported into R:
 **6.Filter and normalise raw gene count tables with R scripts (DEG_Yolandi.Rmd)**
 
 
+
+
 ## cis-eQTL mapping analysis
 
 Run eQTL analysis (eqtl_localaa_globalaa_afr.R and run_eqtl_afr.sh). 
