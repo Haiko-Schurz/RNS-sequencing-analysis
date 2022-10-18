@@ -67,9 +67,9 @@ Run eQTL analysis (eqtl_localaa_globalaa_afr.R and run_eqtl_afr.sh).
 
 **Inputfiles required for analysis:**
 1. Expression file - normalised gene counts (split into chunks of 50 genes per file using split_chunks.sh). Example file: expression.00
-2. Genotyp information - vcf file format 
+2. Genotype information - vcf file format 
 3. Covariates - including PEER confounders (run_PEER.R) and global ancestry proportions calculated with RFMix. 
-4. Local ancestry information - coded as 0, 1 or 2 for every genomic region (interpolate-local-anc.py). Example file: ancestry.chr22.bed
+4. Local ancestry information - inferred with RFMix - coded as 0, 1 or 2 for every genomic region (interpolate-local-anc.py). Example file: ancestry.chr22.bed
 
 **Output file:** LocalAA-GlobalAA-allpairs_afr_filt.tsv.gz
 
