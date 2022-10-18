@@ -34,6 +34,7 @@ The –quantMode option in STAR enables the GeneCount tables we are getting, the
 **4. Get statistics of alignments using 04_STAR_stats.sh**
 
 Alignment output: 
+
 ![image](https://user-images.githubusercontent.com/49681556/196138925-97c9dfcd-1f06-4c94-9025-c3e6cd9aca81.png)
 
 - First column indicates mapped either to reverse or double strand = total read count ; this is how you find out if your samples mapped to either the everse or forward stand if it is single end paired end reads
@@ -52,6 +53,7 @@ Look at the following for mapping accuracy:
 **5. Get raw count table from STAR alignment output using 05_Count_tables.sh**
 
 Example of raw gene count table that is going to be imported into R:
+
 ![image](https://user-images.githubusercontent.com/49681556/196139688-2e68520f-db89-4c6e-891c-329df7b80838.png)
 
 **6.Filter and normalise raw gene count tables with R scripts (DEG_Yolandi.Rmd)**
